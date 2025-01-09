@@ -2,15 +2,13 @@
 	import { Router } from './lib';
 
 	import Home from './pages/Home.svelte';
-	import Settings from './pages/settings/Index.svelte';
-	import SettingsAccount from './pages/settings/account/Index.svelte';
-	import SettingsAvatar from './pages/settings/account/Avatar.svelte';
-	import SettingsPreferences from './pages/settings/Preferences.svelte';
+	import About from './pages/About.svelte';
+	import User from './pages/user/Index.svelte';
+	import UserEdit from './pages/user/Edit.svelte';
 </script>
 
 <Router
 	config={{
-		
 		routes: [
 			{
 				name: 'Home',
@@ -18,38 +16,19 @@
 				component: Home
 			},
 			{
-				name: 'Settings',
-				path: '/settings',
-				component: Settings,
+				name: 'About',
+				path: '/about',
+				component: About
+			},
+			{
+				name: 'User',
+				path: '/user/:id',
+				component: User,
 				children: [
 					{
-						name: 'SettingsAccount',
-						path: '/account',
-						component: SettingsAccount,
-						children: [
-							{
-								name: 'SettingsPassword',
-								path: '/password',
-								component: () => import('./pages/settings/account/Password.svelte'),
-								children: [
-									{
-										name: 'test',
-										path: '/home',
-										component: Home
-									},
-								]
-							},
-							{
-								name: 'SettingsAvatar',
-								path: '/avatar',
-								component: SettingsAvatar
-							}
-						]
-					},
-					{
-						name: 'SettingsPreferences',
-						path: '/preferences',
-						component: SettingsPreferences
+						name: 'UserEdit',
+						path: '/edit',
+						component: UserEdit
 					}
 				]
 			}
@@ -59,15 +38,17 @@
 	{#snippet layout()}
 		<nav>
 			<a href="/">Home</a>
-			<a href="/settings">Settings</a>
+			<a href="/about">About</a>
 		</nav>
 	{/snippet}
 	{#snippet loading()}
 		<p>Loading...</p>
 	{/snippet}
 	{#snippet error(err)}
-		{err}
-		Error?
+		SOME SORT OF ERROR?
+		<pre>
+			{err}
+		</pre>
 	{/snippet}
 </Router>
 

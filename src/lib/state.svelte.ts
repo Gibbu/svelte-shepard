@@ -15,20 +15,12 @@ export class Router {
 
 		return deepFind(this.routes, (v) => v.path === '/' + parent);
 	});
-	// CurrentPagePathParts = $derived(this.CurrentPage?.path.split('/').filter(Boolean));
-	// CurrentPageParams = $derived(
-	// 	this.CurrentPage &&
-	// 		this.CurrentPage.path
-	// 			.split('/')
-	// 			.filter(Boolean)
-	// 			.map((el) => el.startsWith(':'))
-	// );
 
 	constructor(config: RouterConfig) {
 		this.baseUrl = config.baseURL;
 		this.routes = config.routes;
 
-		$inspect(this.url, this.CurrentPage, this.truncatedRoutes);
+		$inspect(this.url, this.truncatedRoutes);
 
 		this.#parseRoutes();
 

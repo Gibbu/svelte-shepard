@@ -50,26 +50,22 @@
 
 {#if router.CurrentPage}
 	{@render build(router.CurrentPage)}
+{:else}
+	{@render error?.(404)}
 {/if}
 
 {#snippet build(route: Route)}
-	{#snippet getComponent(route: Route)}
-		{#await loadComponent(route)}
-			{@render loading?.()}
-		{:then data}
-			{#if data.children}
-				<data.component {...data.props} />
-				{@const child = data.children.find((el) => router.url.toString().includes(el.path))}
-				{#if child}
-					{@render getComponent(child)}
-				{/if}
-			{:else}
-				<data.component {...data.props} />
-			{/if}
-		{:catch err}
-			{@render error?.(err)}
-		{/await}
-	{/snippet}
+	{#await loadComponent(route)}
+		{@render loading?.()}
+	{:then data}
+		{@const child = data.children && data.children.find((el) => router.url.toString().includes(el.path))}
 
-	{@render getComponent(route)}
+		<data.component props={data.props}>
+			{#if child}
+				{@render build(child)}
+			{/if}
+		</data.component>
+	{:catch err}
+		{@render error?.(err)}
+	{/await}
 {/snippet}
