@@ -4,8 +4,8 @@
 <script lang="ts">
 	import { Router } from './state.svelte';
 
-	import type { Snippet } from 'svelte';
-	import type { Route, RouterConfig } from './types';
+	import type { Component, Snippet } from 'svelte';
+	import type { Route, RouterConfig, ComponentType } from './types';
 
 	let {
 		config,
@@ -16,45 +16,60 @@
 
 	const router = new Router(config);
 
-	const loadComponent = async () => {
-		if (router.CurrentPage) {
-			let beforeProps: Record<string, any> = {};
-			const before = await router.CurrentPage.beforeLoad?.();
-			if (before) {
-				if (typeof before === 'boolean' && !before) throw new Error('beforeLoad hook was returned false.');
-				if (typeof before === 'object') {
-					if (before.props) beforeProps = before.props;
-					// if (before.redirect) router.
-				}
+	const loadComponent = async (route: Route) => {
+		let beforeProps: Record<string, any> = {};
+		const before = await route.beforeLoad?.();
+		if (before) {
+			if (before.redirect) {
+				router.navigate(before.redirect);
+				return {};
 			}
-
-			const component = (await router.CurrentPage.component()).default;
-
-			return {
-				component,
-				props: {
-					...router.CurrentPage.props
-					// ...,
-				}
-			};
+			if (before.props) beforeProps = before.props;
 		}
+
+		let component: ComponentType | null = null;
+		if (route.component.name === 'component') {
+			const test = route.component as unknown as () => Promise<{ default: Component<any, any> }>;
+			component = (await test()).default;
+		} else {
+			component = route.component;
+		}
+
+		return {
+			component,
+			children: route.children,
+			props: {
+				...beforeProps,
+				...route.props
+			}
+		};
 	};
 </script>
 
-{#snippet build(route: Route | null)}
-	{#if route}
-		{#await route.component()}
+{@render layout?.()}
+
+{#if router.CurrentPage}
+	{@render build(router.CurrentPage)}
+{/if}
+
+{#snippet build(route: Route)}
+	{#snippet getComponent(route: Route)}
+		{#await loadComponent(route)}
 			{@render loading?.()}
-		{:then { default: Component }}
-			<Component />
+		{:then data}
+			{#if data.children}
+				<data.component {...data.props} />
+				{@const child = data.children.find((el) => router.url.toString().includes(el.path))}
+				{#if child}
+					{@render getComponent(child)}
+				{/if}
+			{:else}
+				<data.component {...data.props} />
+			{/if}
 		{:catch err}
 			{@render error?.(err)}
 		{/await}
-	{:else}
-		{@render error?.()}
-	{/if}
+	{/snippet}
+
+	{@render getComponent(route)}
 {/snippet}
-
-{@render layout?.()}
-
-{@render build(router.CurrentPage)}

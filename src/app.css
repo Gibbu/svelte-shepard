@@ -22,3 +22,10 @@
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 }
+
+a {
+	background: hsl(0 0 100% / 0.1);
+	display: inline-block;
+	padding: 10px;
+	border-radius: 4px;
+}

@@ -1,27 +1,26 @@
 import type { Component } from 'svelte';
 
+export type ComponentType = Component<any, any> | (() => Promise<{ default: Component<any, any> }>);
+
 export interface Route {
 	/** A unique ID for the page. */
 	name: string;
 	/** The URL path for the component to be rendered. */
 	path: string;
 	/** The component to be rendered. */
-	component: () => Promise<{ default: Component }>;
+	component: ComponentType;
 	/** And default props you wish to pass down on mount. */
 	props?: Record<string, any>;
-	beforeLoad?: () => Promise<
-		| boolean
-		| {
-				/** The **unique ID** of the page. */
-				redirect?: string;
-				/**
-				 * Props to be passed down to the component before mounting.
-				 *
-				 * Any duplicate props found in this object will be overwritten by the `props` option.
-				 */
-				props?: Record<string, any>;
-		  }
-	>;
+	beforeLoad?: () => Promise<{
+		/** Redirect the user to a different route. */
+		redirect?: NavigateOptions;
+		/**
+		 * Props to be passed down to the component before mounting.
+		 *
+		 * Any duplicate props found in this object will be overwritten by the route `props` option.
+		 */
+		props?: Record<string, any>;
+	}>;
 	children?: Route[];
 }
 

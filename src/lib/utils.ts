@@ -1,6 +1,6 @@
-type DeepFindElement<T> = Record<string, any> | T[];
+type DeepELement<T> = Record<string, any> | T[];
 
-export const deepFind = <T>(array: DeepFindElement<T>, predicate: (v: T) => boolean): T | null => {
+export const deepFind = <T>(array: DeepELement<T>, predicate: (v: T) => boolean): T | null => {
 	let result: T | T[] | null = null;
 
 	const loop = (item: Record<string, any> | any[]) => {
