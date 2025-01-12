@@ -1,46 +1,29 @@
 <script lang="ts">
-	import { Router } from './lib';
+	import { Router, navigate } from './lib';
 
-	import Home from './pages/Home.svelte';
-	import About from './pages/About.svelte';
-	import User from './pages/user/Index.svelte';
-	import UserEdit from './pages/user/Edit.svelte';
+	import { config } from './routes';
 </script>
 
-<Router
-	config={{
-		routes: [
-			{
-				name: 'Home',
-				path: '/',
-				component: Home
-			},
-			{
-				name: 'About',
-				path: '/about',
-				component: About
-			},
-			{
+<nav>
+	<a href="/">Home</a>
+	<a href="/about">About</a>
+	<a href="/user/123">User 123</a>
+	<a href="/user/444">User 444</a>
+	<a href="/user/123/edit" data-shepard-disabled>Edit User 123</a>
+	<button
+		type="button"
+		onclick={() => {
+			navigate({
 				name: 'User',
-				path: '/user/:id',
-				component: User,
-				children: [
-					{
-						name: 'UserEdit',
-						path: '/edit',
-						component: UserEdit
-					}
-				]
-			}
-		]
-	}}
->
-	{#snippet layout()}
-		<nav>
-			<a href="/">Home</a>
-			<a href="/about">About</a>
-		</nav>
-	{/snippet}
+				params: {
+					id: '3123'
+				}
+			});
+		}}>Goto user</button
+	>
+</nav>
+
+<Router {config}>
 	{#snippet loading()}
 		<p>Loading...</p>
 	{/snippet}

@@ -1,39 +1,19 @@
-import type { Component } from 'svelte';
+import type { Snippet } from 'svelte';
+import type { LayoutRoute, PageRoute } from './internal/types';
 
-export type ComponentType = Component<any, any> | (() => Promise<{ default: Component<any, any> }>);
-
-export interface Route {
-	/** A unique ID for the page. */
-	name: string;
-	/** The URL path for the component to be rendered. */
-	path: string;
-	/** The component to be rendered. */
-	component: ComponentType;
-	/** And default props you wish to pass down on mount. */
-	props?: Record<string, any>;
-	beforeLoad?: () => Promise<{
-		/** Redirect the user to a different route. */
-		redirect?: NavigateOptions;
-		/**
-		 * Props to be passed down to the component before mounting.
-		 *
-		 * Any duplicate props found in this object will be overwritten by the route `props` option.
-		 */
-		props?: Record<string, any>;
-	}>;
-	children?: Route[];
-}
+export type Route = PageRoute | LayoutRoute;
 
 export interface RouterConfig {
 	routes: Route[];
 	baseURL?: string;
 }
 
-interface NavigateWithName {
-	name: string;
-	params?: Record<string, any>;
+export interface Page {
+	props: Record<string, any>;
+	params: Record<string, any>;
+	query: Record<string, any>;
 }
-interface NavigateWithUrl {
-	url: string;
+
+export interface Layout extends Page {
+	children: Snippet;
 }
-export type NavigateOptions = NavigateWithName | NavigateWithUrl;
