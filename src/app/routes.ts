@@ -6,7 +6,7 @@ import AboutChild from './pages/AboutChild.svelte';
 import AboutLayout from './layouts/AboutLayout.svelte';
 import TestLayout from './layouts/TestLayout.svelte';
 
-import type { RouterConfig } from './lib/types';
+import type { RouterConfig } from '../lib/types';
 
 const config: RouterConfig = {
 	routes: [

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Router, navigate } from './lib';
+	import { Router, navigate } from '../lib';
 
 	import { config } from './routes';
 </script>
