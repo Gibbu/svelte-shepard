@@ -1,5 +1,12 @@
 <script lang="ts">
-	let { params }: { params: Record<string, any> } = $props();
+	import type { Page } from '../../../lib';
+
+	let { params, query }: Page = $props();
 </script>
 
-Editing: {params.id}
+<pre>
+	{JSON.stringify(params)}
+</pre>
+<pre>
+	{JSON.stringify(query)}
+</pre>

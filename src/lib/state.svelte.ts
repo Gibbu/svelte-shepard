@@ -2,25 +2,39 @@ import { sanitizeUrl } from '@braintree/sanitize-url';
 import { createUID, deepClone, error } from './internal/utils';
 
 import type { InternalPage, InternalRoute, InternalRouterConfig, LayoutRoute, NavigateOptions } from './internal/types';
+import queryString from 'query-string';
 
 export class Router {
 	url = $state<string>('/');
-	baseUrl: InternalRouterConfig['baseURL'] = '';
+	base: InternalRouterConfig['base'] = '';
 	routes: InternalRouterConfig['routes'] = [];
 
 	internalRoutes: InternalPage[] = [];
 
 	CurrentPage = $derived.by(() => {
-		const urlParts = this.url.split('/');
+		const { url, query } = queryString.parseUrl(this.url);
+		const parsedURL = url.startsWith('http') ? new URL(this.url).pathname : url;
+		const urlParts = parsedURL.split('/');
 
 		// 1-1 match, no params found.
-		const plain = this.internalRoutes.find((el) => el.path === this.url);
-		if (plain) return plain;
+		const plain = this.internalRoutes.find((el) => el.path === parsedURL);
+		if (plain) {
+			if (query) plain.query = query;
+			return plain;
+		}
 
 		// No 1-1 match, params must be present.
-		const candidateRoutes = this.internalRoutes.filter((el) => el.path.startsWith('/' + urlParts[1]));
+		const candidateRoutes = this.internalRoutes.filter((el) => {
+			let path = el.path;
+			if (this.base) {
+				path = path.replace(this.base + '/', '');
+			}
+
+			return path.startsWith('/' + urlParts[this.base ? 2 : 1]);
+		});
+		console.log(candidateRoutes);
 		const route = candidateRoutes.find((el) => el.path.split('/').length === urlParts.length);
-		if (!route) return this.internalRoutes[0];
+		if (!route) return null;
 
 		// Find param positions.
 		let paramLoc: number[] = [];
@@ -41,35 +55,31 @@ export class Router {
 			route.params[key] = value;
 		}
 
+		if (query) route.query = query;
+
 		return route;
 	});
 
 	init = (config: InternalRouterConfig) => {
-		this.baseUrl = config.baseURL;
+		this.base = config.base;
 		this.routes = config.routes;
 
 		this.#parseRoutes();
 
-		$effect(() => {
-			this.url = this.#getURL(window.location.pathname);
+		this.url = sanitizeUrl(window.location.href);
 
-			window.history.pushState = new Proxy(window.history.pushState, {
-				apply: (target, thisArg, args) => {
-					const URL = args[2] as URL | string;
-					this.url = this.#getURL(URL);
+		$inspect(this.url);
 
-					return target.apply(thisArg, args as any);
-				}
-			});
+		window.history.pushState = new Proxy(window.history.pushState, {
+			apply: (target, thisArg, args) => {
+				this.url = sanitizeUrl(args[2]);
 
-			window.addEventListener('popstate', this.#handlePopstate);
-			window.addEventListener('click', this.#handleClick);
-
-			return () => {
-				window.removeEventListener('popstate', this.#handlePopstate);
-				window.removeEventListener('click', this.#handleClick);
-			};
+				return target.apply(thisArg, args as any);
+			}
 		});
+
+		window.addEventListener('popstate', this.#handlePopstate);
+		window.addEventListener('click', this.#handleClick);
 	};
 
 	#parseRoutes = () => {
@@ -101,13 +111,16 @@ export class Router {
 
 		mapRoutes(clonedRoutes);
 
-		this.internalRoutes = Array.from(paths).map(([_, v]) => v);
+		this.internalRoutes = Array.from(paths).map(([_, v]: InternalPage[]) => {
+			if (this.base) v.path = `/${this.base}${v.path}`;
+			return v;
+		});
 	};
 	#push = (url: string) => {
-		history.pushState(null, '', this.#getURL(url));
+		history.pushState(null, '', sanitizeUrl(url));
 	};
 	#handlePopstate = () => {
-		this.url = this.#getURL(window.location.pathname);
+		this.url = sanitizeUrl(window.location.pathname);
 	};
 	#handleClick = (e: MouseEvent) => {
 		const target = e.target as HTMLElement;
@@ -119,18 +132,12 @@ export class Router {
 			const href = anchor.getAttribute('href');
 			if (href?.startsWith('/')) {
 				e.preventDefault();
-				if (href !== this.url) this.#push(href);
+				if (href !== this.url) {
+					if (this.base) this.#push(`/${this.base}${href}`);
+					else this.#push(href);
+				}
 			}
 		}
-	};
-
-	#getURL = (url: string | URL) => {
-		const u = typeof url === 'string' ? url : url.pathname;
-
-		return sanitizeUrl(this.baseUrl ? this.baseUrl + '/' : '' + u);
-	};
-	#parseURL = (url: string) => {
-		return url.startsWith('//') ? url.replace('/', '') : !url.startsWith('/') ? '/' + url : url;
 	};
 
 	navigate = (opts: NavigateOptions) => {
@@ -156,7 +163,7 @@ export class Router {
 						`Passed: ${optsParams.join(',')}`
 					);
 
-				const url = route.path
+				let url = route.path
 					.split('/')
 					.map((el) => {
 						if (el.startsWith(':')) {
@@ -167,10 +174,14 @@ export class Router {
 					})
 					.join('/');
 
-				this.#push(this.#getURL(url));
+				if (opts.query) {
+					url += '?' + queryString.stringify(opts.query);
+				}
+
+				this.#push(url);
 			}
 		} else {
-			this.#push(this.#getURL(opts));
+			this.#push(opts);
 		}
 	};
 }

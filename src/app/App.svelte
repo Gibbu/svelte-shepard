@@ -6,7 +6,7 @@
 
 <nav>
 	<a href="/">Home</a>
-	<a href="/about">About</a>
+	<a href="/about?testing=123">About</a>
 	<a href="/user/123">User 123</a>
 	<a href="/user/444">User 444</a>
 	<a href="/user/123/edit" data-shepard-disabled>Edit User 123</a>
@@ -17,6 +17,10 @@
 				name: 'User',
 				params: {
 					id: '3123'
+				},
+				query: {
+					search: 'testingthestuffs',
+					does: 'this work?'
 				}
 			});
 		}}>Goto user</button

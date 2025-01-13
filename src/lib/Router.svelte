@@ -60,7 +60,8 @@
 			component,
 			children: route.children,
 			props,
-			params: route.params
+			params: route.params,
+			query: route.query
 		};
 	};
 </script>
@@ -69,16 +70,13 @@
 	{#await loadComponent(route)}
 		{@render loading?.()}
 	{:then data}
+		{@const { props, params, query } = data}
 		{#if data.layout}
-			<data.layout.component props={data.props} params={data.params}>
-				{#key router.url}
-					<data.component props={data.props} params={data.params} />
-				{/key}
+			<data.layout.component {props} {params} {query}>
+				<data.component {props} {params} {query} } />
 			</data.layout.component>
 		{:else}
-			{#key router.url}
-				<data.component props={data.props} params={data.params} />
-			{/key}
+			<data.component {props} {params} {query} } />
 		{/if}
 	{:catch err}
 		{@render error?.(err)}
@@ -86,7 +84,9 @@
 {/snippet}
 
 {#if router.CurrentPage}
-	{@render build(router.CurrentPage)}
+	{#key router.url}
+		{@render build(router.CurrentPage)}
+	{/key}
 {:else}
 	{@render error?.(404)}
 {/if}

@@ -50,7 +50,11 @@ export interface PageRoute extends BasePageProps {
 }
 
 /** Used internally. */
-export type InternalPage = PageRoute & { params?: Record<string, any>; _layout?: LayoutRoute };
+export type InternalPage = PageRoute & {
+	_layout?: LayoutRoute;
+	params?: Record<string, any>;
+	query?: Record<string, any>;
+};
 /** Used internally. */
 export type InternalLayout = LayoutRoute & { params?: Record<string, any> };
 /** Used internally. */

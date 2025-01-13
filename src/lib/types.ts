@@ -5,7 +5,7 @@ export type Route = PageRoute | LayoutRoute;
 
 export interface RouterConfig {
 	routes: Route[];
-	baseURL?: string;
+	base?: string;
 }
 
 export interface Page {

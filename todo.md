@@ -1,2 +1,3 @@
-- Parse queries on `navigate` object call.
-- Pass queries to page as object.
+- Typesafe `navigate` function?
+- Typesafe `link` function?
+  - `link('/user/:id')`
