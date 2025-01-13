@@ -1,4 +1,4 @@
-export * from './state.svelte';
+export { page } from './state.svelte';
 
 export { default as Router, navigate } from './Router.svelte';
 

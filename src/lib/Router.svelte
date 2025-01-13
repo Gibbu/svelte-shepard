@@ -5,9 +5,9 @@
 </script>
 
 <script lang="ts">
-	import { Router } from './state.svelte';
+	import { Router, page } from './state.svelte';
 
-	import type { Snippet } from 'svelte';
+	import type { Component, Snippet } from 'svelte';
 	import type { RouterConfig } from './types';
 	import type {
 		InternalPage,
@@ -41,7 +41,7 @@
 		return props;
 	};
 
-	const loadComponent = async (route: InternalPage) => {
+	const renderComponent = async (route: InternalPage) => {
 		let component: PageComponent | null = null;
 		if (route.component.name === 'component') {
 			const tmp = route.component as AsyncComponent;
@@ -55,38 +55,44 @@
 			...(await runBefore(route))
 		};
 
+		page.props = props;
+		page.params = route.params || {};
+		page.query = route.query || {};
+
 		return {
 			layout: route._layout,
 			component,
-			children: route.children,
-			props,
-			params: route.params,
-			query: route.query
+			children: route.children
 		};
 	};
 </script>
 
-{#snippet build(route: InternalPage)}
-	{#await loadComponent(route)}
-		{@render loading?.()}
-	{:then data}
-		{@const { props, params, query } = data}
-		{#if data.layout}
-			<data.layout.component {props} {params} {query}>
-				<data.component {props} {params} {query} } />
-			</data.layout.component>
-		{:else}
-			<data.component {props} {params} {query} } />
-		{/if}
-	{:catch err}
-		{@render error?.(err)}
-	{/await}
+{#snippet build()}
+	{#if router.CurrentPage}
+		{#key router.url}
+			{#await renderComponent(router.CurrentPage)}
+				{@render loading?.()}
+			{:then data}
+				{#if data.layout}
+					<data.layout.component {...page}>
+						<data.component {...page} />
+					</data.layout.component>
+				{:else}
+					<data.component {...page} />
+				{/if}
+			{:catch err}
+				{@render error?.(err)}
+			{/await}
+		{/key}
+	{:else}
+		{@render error?.(404)}
+	{/if}
 {/snippet}
 
-{#if router.CurrentPage}
-	{#key router.url}
-		{@render build(router.CurrentPage)}
-	{/key}
+{#if config.layout}
+	<config.layout {...page}>
+		{@render build()}
+	</config.layout>
 {:else}
-	{@render error?.(404)}
+	{@render build()}
 {/if}

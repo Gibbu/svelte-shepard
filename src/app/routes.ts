@@ -7,8 +7,10 @@ import AboutLayout from './layouts/AboutLayout.svelte';
 import TestLayout from './layouts/TestLayout.svelte';
 
 import type { RouterConfig } from '../lib/types';
+import Layout from './layouts/Layout.svelte';
 
 const config: RouterConfig = {
+	layout: Layout,
 	routes: [
 		{
 			path: '/',

@@ -1,3 +1,4 @@
 - Typesafe `navigate` function?
 - Typesafe `link` function?
   - `link('/user/:id')`
+- Better error messages.

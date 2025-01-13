@@ -3,6 +3,13 @@ import { createUID, deepClone, error } from './internal/utils';
 
 import type { InternalPage, InternalRoute, InternalRouterConfig, LayoutRoute, NavigateOptions } from './internal/types';
 import queryString from 'query-string';
+import type { Page } from './types';
+
+export let page = $state<Page>({
+	params: {},
+	props: {},
+	query: {}
+});
 
 export class Router {
 	url = $state<string>('/');
@@ -32,7 +39,6 @@ export class Router {
 
 			return path.startsWith('/' + urlParts[this.base ? 2 : 1]);
 		});
-		console.log(candidateRoutes);
 		const route = candidateRoutes.find((el) => el.path.split('/').length === urlParts.length);
 		if (!route) return null;
 
