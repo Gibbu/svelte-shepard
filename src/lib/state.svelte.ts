@@ -13,10 +13,10 @@ import type {
 	PageComponent,
 	RouteOptions
 } from './internal/types';
-import type { PageData, PageState } from './types';
+import type { Page, PageState } from './types';
 
 /** The data of the page. */
-export let page = $state<PageData>({
+export let page = $state<Page>({
 	params: {},
 	props: {},
 	query: {}
@@ -111,7 +111,7 @@ export class Router {
 	runBefore = async (route?: InternalRoute) => {
 		let props: BeforeLoadProps = route?.props || {};
 		if (!route) return props;
-		const run = await route.beforeLoad?.();
+		const run = await route.beforeLoad?.(route.params || {});
 		if (typeof run === 'object') {
 			if (run.redirect) this.navigate(run.redirect);
 			if (run.props) props = { ...props, ...run.props };

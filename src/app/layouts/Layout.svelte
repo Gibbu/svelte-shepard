@@ -4,13 +4,9 @@
 	let { children }: Layout = $props();
 </script>
 
-<div>{state.navigating}</div>
-<div>{state.page.name}</div>
-<div>{state.page.path}</div>
-
 <nav>
 	<a href="/">Home</a>
-	<a href="/test">Test</a>
+	<a href="/docs">Docs</a>
 </nav>
 
 <div>{@render children()}</div>

@@ -1,8 +1,7 @@
 import type { Snippet } from 'svelte';
-import type { LayoutRoute, PageRoute, SyncComponent } from './internal/types';
+import type { PageType, Route, SyncComponent } from './internal/types';
 
-export type Route = PageRoute | LayoutRoute;
-
+/** The config for the router. */
 export interface RouterConfig {
 	routes: Route[];
 	/** Base layout to be rendered across ALL routes. */
@@ -15,12 +14,19 @@ export interface RouterConfig {
 	base?: string;
 }
 
-export interface PageData {
-	props: Record<string, any>;
-	params: Record<string, any>;
-	query: Record<string, any>;
-}
-
+/**
+ * The structure of the router state.
+ *
+ *  ```svelte
+ * <script>
+ * import type { PageState } from 'svelte-shepard';
+ *
+ * let { props, params, query }: PageState = $props();
+ * </script>
+ *
+ * {params.id}
+ * ```
+ */
 export interface PageState {
 	navigating: boolean;
 	page: {
@@ -29,6 +35,40 @@ export interface PageState {
 	};
 }
 
-export interface Layout extends PageData {
+/**
+ *  The structure of the data passed down to the page by the router.
+ *
+ *  ```svelte
+ * <script>
+ * import type { Page } from 'svelte-shepard';
+ *
+ * let { props, params, query }: Page = $props();
+ * </script>
+ *
+ * {params.id}
+ * ```
+ */
+export interface Page<T extends PageType = Required<PageType>> {
+	props: T['props'] extends {} ? T['props'] : Record<string, any>;
+	params: T['params'] extends {} ? T['params'] : Record<string, any>;
+	query: T['query'] extends {} ? T['query'] : Record<string, any>;
+}
+
+/**
+ *  The structure of the data passed down to the layout by the router.
+ *
+ *  ```svelte
+ * <script>
+ * import type { Layout } from 'svelte-shepard';
+ *
+ * let { children, props, params, query }: Layout = $props();
+ * </script>
+ *
+ * {params.id}
+ *
+ * {@render children()}
+ * ```
+ */
+export interface Layout<T extends PageType = Required<PageType>> extends Page<T> {
 	children: Snippet;
 }

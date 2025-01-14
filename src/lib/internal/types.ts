@@ -1,10 +1,16 @@
 import type { Component } from 'svelte';
-import type { Route, RouterConfig } from '../types';
+import type { RouterConfig } from '../types';
 
 export type SyncComponent = Component<any, any>;
 export type AsyncComponent = () => Promise<{ default: PageComponent }>;
 
 export type PageComponent = SyncComponent | AsyncComponent;
+export type Route = PageRoute | LayoutRoute;
+export interface PageType {
+	props?: Record<string, any>;
+	params?: Record<string, any>;
+	query?: Record<string, any>;
+}
 
 export interface BeforeLoadProps {
 	/** Redirect the user to a different route. */
@@ -14,12 +20,19 @@ export interface BeforeLoadProps {
 	 * Any duplicate props found in this object will be overwritten by the route `props` option.
 	 *
 	 * Layout calls will pass also pass down their props to the current page.\
-	 * And page changes will retrugger the call.
+	 * Page changes will retrigger the call.
 	 */
 	props?: Record<string, any>;
+	/** Trigger the router to render the error snippet. */
+	error?:
+		| number
+		| {
+				status: number;
+				message?: string;
+		  };
 }
 
-export type BeforeLoad = () => Promise<BeforeLoadProps | void>;
+export type BeforeLoad = (params: Record<string, any>) => Promise<BeforeLoadProps | void>;
 
 export interface BasePageProps {
 	/** The component to be rendered. */

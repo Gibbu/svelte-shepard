@@ -1,5 +1,7 @@
 import Home from './pages/Home.svelte';
 import Layout from './layouts/Layout.svelte';
+import Docs from './pages/docs/Index.svelte';
+import DocPage from './pages/docs/Page.svelte';
 
 import type { RouterConfig } from '../lib/types';
 
@@ -12,8 +14,14 @@ const config: RouterConfig = {
 			component: Home
 		},
 		{
-			path: '/test',
-			component: () => import('./pages/Test.svelte')
+			path: '/docs',
+			component: Docs,
+			children: [
+				{
+					path: '/:id',
+					component: DocPage
+				}
+			]
 		}
 	]
 };

@@ -1,2 +1,8 @@
+Lib:
+
 - Better error messages.
-- isNavigating boolean.
+- Handle new returned `error` prop in `beforeLoad` route function.
+
+Docs:
+
+- Render markdown.
