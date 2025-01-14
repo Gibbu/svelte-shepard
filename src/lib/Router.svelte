@@ -2,6 +2,7 @@
 	const router = new Router();
 
 	export const navigate = router.navigate;
+	export const link = router.link;
 </script>
 
 <script lang="ts">

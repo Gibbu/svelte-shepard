@@ -4,6 +4,13 @@
 	let { children }: Layout = $props();
 </script>
 
-AboutLayout
+<div>AboutLayout</div>
 
 {@render children?.()}
+
+<style>
+	div {
+		background: red;
+		color: lime;
+	}
+</style>

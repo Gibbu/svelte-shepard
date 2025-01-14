@@ -64,13 +64,13 @@ export interface InternalRouterConfig extends RouterConfig {
 	routes: InternalRoute[];
 }
 /** Used internally. */
-export type NavigateOptions =
-	| string
-	| {
-			/** The unique name of the route. */
-			name: string;
-			/** Any params to be passed to the route. */
-			params?: Record<string, any>;
-			/** Any queries to be appended to the url. */
-			query?: Record<string, any>;
-	  };
+export interface RouteOptions {
+	/** The unique name of the route. */
+	name: string;
+	/** Any params to be passed to the route. */
+	params?: Record<string, any>;
+	/** Any queries to be appended to the url. */
+	query?: Record<string, any>;
+}
+/** Used internally. */
+export type NavigateOptions = string | RouteOptions;

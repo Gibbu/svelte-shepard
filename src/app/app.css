@@ -11,16 +11,29 @@
 	--colour-honey: #ffc670;
 	--colour-honey-darker: hsl(from var(--colour-honey) h s calc(l - 4));
 
+	--background: light-dark(var(--colour-moon-mist), var(--colour-dune));
+	--background-darker: light-dark(var(--colour-moon-mist-darker), var(--colour-dune-darker));
+
+	--text: light-dark(var(--colour-dune), var(--colour-moon-mist));
+	--text-darker: light-dark(var(--colour-dune-darker), var(--colour-moon-mist-darker));
+
 	font-family: Inter, Roboto, system-ui, Avenir, Helvetica, Arial, sans-serif;
 	line-height: 1.5;
 	font-weight: 400;
 	color-scheme: light dark;
-	color: light-dark(var(--colour-dune), var(--colour-moon-mist));
-	background-color: light-dark(var(--colour-moon-mist), var(--colour-dune));
+	color: var(--text);
+	background-color: var(--background);
 	font-synthesis: none;
 	text-rendering: optimizeLegibility;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+}
+
+[data-theme='light'] {
+	color-scheme: light;
+}
+[data-theme='dark'] {
+	color-scheme: dark;
 }
 
 a {

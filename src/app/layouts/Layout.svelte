@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { navigate, page, type Layout } from '../../lib';
+	import { navigate, page, link, type Layout } from '../../lib';
 
 	let { children }: Layout = $props();
 </script>
 
 <nav>
-	<a href="/">Home</a>
-	<a href="/about?testing=123">About</a>
-	<a href="/user/444">User 444</a>
-	<a href="/user/123/edit" data-shepard-disabled>Disabled click</a>
+	<a href={link({ name: 'Home' })}>Home</a>
+	<a href={link({ name: 'About', query: { testing: 123 } })}>About</a>
+	<a href={link({ name: 'User', params: { id: 444 } })}>User 444</a>
+	<a href={link({ name: 'User', params: { id: 333 } })} data-shepard-disabled>Disabled click</a>
 	<button
 		type="button"
 		onclick={() => {
@@ -36,7 +36,7 @@
 
 <style>
 	nav {
-		background: light-dark(var(--colour-moon-mist-darker), var(--colour-dune-darker));
+		background: var(--background-darker);
 		padding: 10px;
 		margin: 10px;
 		border-radius: 5px;

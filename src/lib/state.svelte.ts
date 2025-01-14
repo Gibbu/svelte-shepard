@@ -1,8 +1,15 @@
 import { sanitizeUrl } from '@braintree/sanitize-url';
 import { createUID, deepClone, error } from './internal/utils';
-
-import type { InternalPage, InternalRoute, InternalRouterConfig, LayoutRoute, NavigateOptions } from './internal/types';
 import queryString from 'query-string';
+
+import type {
+	InternalPage,
+	InternalRoute,
+	InternalRouterConfig,
+	LayoutRoute,
+	NavigateOptions,
+	RouteOptions
+} from './internal/types';
 import type { Page } from './types';
 
 export let page = $state<Page>({
@@ -146,48 +153,62 @@ export class Router {
 		}
 	};
 
+	#parseURLParams = (path: string, opts: RouteOptions) => {
+		let newURL = path;
+
+		if (path.includes(':')) {
+			const routeParams = path
+				.split('/')
+				.filter((el) => el.startsWith(':'))
+				.map((el) => el.replace(':', ''));
+			if (!opts.params && routeParams.length)
+				return error('This route requires params to be passed.', `Params to be passed: ${routeParams.join(',')}`);
+
+			const optsParams = Object.keys(opts.params!);
+			const missingParams = optsParams.filter((el) => !routeParams.includes(el));
+			if (missingParams.length) return error(`Route requires these params: ${missingParams.join(',')}`);
+			if (optsParams.length !== routeParams.length)
+				return error(
+					'Incorrect amount of params passed to route',
+					`Expecting: ${routeParams.join(',')}`,
+					`Passed: ${optsParams.join(',')}`
+				);
+			newURL = path
+				.split('/')
+				.map((el) => {
+					if (el.startsWith(':')) {
+						const key = el.replace(':', '');
+						return opts.params![key];
+					}
+					return el;
+				})
+				.join('/');
+		}
+
+		if (opts.query) {
+			newURL += '?' + queryString.stringify(opts.query);
+		}
+		return newURL;
+	};
 	navigate = (opts: NavigateOptions) => {
 		if (typeof opts !== 'string') {
 			const route = this.internalRoutes.find((el) => el.name === opts.name);
 			if (!route) return error(`Cannot find a route by the unique name of: "${opts.name}"`);
 
-			if (route.path.includes(':')) {
-				const routeParams = route.path
-					.split('/')
-					.filter((el) => el.startsWith(':'))
-					.map((el) => el.replace(':', ''));
-				if (!opts.params && routeParams.length)
-					return error('This route requires params to be passed.', `Params to be passed: ${routeParams.join(',')}`);
-
-				const optsParams = Object.keys(opts.params!);
-				const missingParams = optsParams.filter((el) => !routeParams.includes(el));
-				if (missingParams.length) return error(`Route requires these params: ${missingParams.join(',')}`);
-				if (optsParams.length !== routeParams.length)
-					return error(
-						'Incorrect amount of params passed to route',
-						`Expecting: ${routeParams.join(',')}`,
-						`Passed: ${optsParams.join(',')}`
-					);
-
-				let url = route.path
-					.split('/')
-					.map((el) => {
-						if (el.startsWith(':')) {
-							const key = el.replace(':', '');
-							return opts.params![key];
-						}
-						return el;
-					})
-					.join('/');
-
-				if (opts.query) {
-					url += '?' + queryString.stringify(opts.query);
-				}
-
-				this.#push(url);
-			}
+			this.#push(this.#parseURLParams(route.path, opts));
 		} else {
 			this.#push(opts);
 		}
+	};
+	/**
+	 * A helper function to map route named keys to the route path.
+	 * @param opts The options of the route you wish to be parsed.
+	 * @param notFound The URL to be returned if the route does not exist.
+	 */
+	link = (opts: RouteOptions, notFound: string = 'not-found') => {
+		const route = this.internalRoutes.find((el) => el.name === opts.name);
+		if (!route) return notFound;
+
+		return this.#parseURLParams(route.path, opts);
 	};
 }

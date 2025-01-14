@@ -13,6 +13,7 @@ const config: RouterConfig = {
 	layout: Layout,
 	routes: [
 		{
+			name: 'Home',
 			path: '/',
 			component: Home
 		},
@@ -21,10 +22,15 @@ const config: RouterConfig = {
 			component: AboutLayout,
 			children: [
 				{
+					name: 'About',
 					path: 'about',
 					component: About,
+					props: {
+						newProp: 'testing123'
+					},
 					children: [
 						{
+							name: 'AboutChild',
 							path: 'child',
 							component: AboutChild
 						}
@@ -33,13 +39,20 @@ const config: RouterConfig = {
 			]
 		},
 		{
-			name: 'User',
-			path: '/user/:id',
-			component: User,
+			type: 'layout',
+			component: TestLayout,
 			children: [
 				{
-					path: '/edit',
-					component: UserEdit
+					name: 'User',
+					path: '/user/:id',
+					component: User,
+					children: [
+						{
+							name: 'UserEdit',
+							path: '/edit',
+							component: UserEdit
+						}
+					]
 				}
 			]
 		}
