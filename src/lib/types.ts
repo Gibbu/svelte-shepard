@@ -15,12 +15,20 @@ export interface RouterConfig {
 	base?: string;
 }
 
-export interface Page {
+export interface PageData {
 	props: Record<string, any>;
 	params: Record<string, any>;
 	query: Record<string, any>;
 }
 
-export interface Layout extends Page {
+export interface PageState {
+	navigating: boolean;
+	page: {
+		name: string;
+		path: string;
+	};
+}
+
+export interface Layout extends PageData {
 	children: Snippet;
 }

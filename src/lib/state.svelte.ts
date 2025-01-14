@@ -3,19 +3,32 @@ import { createUID, deepClone, error } from './internal/utils';
 import queryString from 'query-string';
 
 import type {
+	AsyncComponent,
+	BeforeLoadProps,
 	InternalPage,
 	InternalRoute,
 	InternalRouterConfig,
 	LayoutRoute,
 	NavigateOptions,
+	PageComponent,
 	RouteOptions
 } from './internal/types';
-import type { Page } from './types';
+import type { PageData, PageState } from './types';
 
-export let page = $state<Page>({
+/** The data of the page. */
+export let page = $state<PageData>({
 	params: {},
 	props: {},
 	query: {}
+});
+
+/** General state of the router. */
+export let state = $state<PageState>({
+	navigating: false,
+	page: {
+		name: '',
+		path: ''
+	}
 });
 
 export class Router {
@@ -73,6 +86,9 @@ export class Router {
 		return route;
 	});
 
+	//
+	// Private methdods (not exported)
+	//
 	init = (config: InternalRouterConfig) => {
 		this.base = config.base;
 		this.routes = config.routes;
@@ -80,8 +96,6 @@ export class Router {
 		this.#parseRoutes();
 
 		this.url = sanitizeUrl(window.location.href);
-
-		$inspect(this.url);
 
 		window.history.pushState = new Proxy(window.history.pushState, {
 			apply: (target, thisArg, args) => {
@@ -93,6 +107,46 @@ export class Router {
 
 		window.addEventListener('popstate', this.#handlePopstate);
 		window.addEventListener('click', this.#handleClick);
+	};
+	runBefore = async (route?: InternalRoute) => {
+		let props: BeforeLoadProps = route?.props || {};
+		if (!route) return props;
+		const run = await route.beforeLoad?.();
+		if (typeof run === 'object') {
+			if (run.redirect) this.navigate(run.redirect);
+			if (run.props) props = { ...props, ...run.props };
+		}
+		return props;
+	};
+	render = async (route: InternalPage) => {
+		let component: PageComponent | null = null;
+		if (route.component.name === 'component') {
+			const tmp = route.component as AsyncComponent;
+			component = (await tmp()).default;
+		} else {
+			component = route.component;
+		}
+
+		let props: Record<string, any> = {
+			...(await this.runBefore(route._layout)),
+			...(await this.runBefore(route))
+		};
+
+		page.props = props;
+		page.params = route.params || {};
+		page.query = route.query || {};
+
+		state.navigating = false;
+		state.page = {
+			name: route.name || '',
+			path: route.path
+		};
+
+		return {
+			layout: route._layout,
+			component,
+			children: route.children
+		};
 	};
 
 	#parseRoutes = () => {
@@ -130,6 +184,7 @@ export class Router {
 		});
 	};
 	#push = (url: string) => {
+		state.navigating = true;
 		history.pushState(null, '', sanitizeUrl(url));
 	};
 	#handlePopstate = () => {
@@ -152,9 +207,11 @@ export class Router {
 			}
 		}
 	};
+	#parseURLParams = (opts: RouteOptions) => {
+		const route = this.internalRoutes.find((el) => el.name === opts.name);
+		if (!route) return error(`Cannot find a route by the unique name of: "${opts.name}"`);
 
-	#parseURLParams = (path: string, opts: RouteOptions) => {
-		let newURL = path;
+		let path = route.path;
 
 		if (path.includes(':')) {
 			const routeParams = path
@@ -173,7 +230,7 @@ export class Router {
 					`Expecting: ${routeParams.join(',')}`,
 					`Passed: ${optsParams.join(',')}`
 				);
-			newURL = path
+			path = path
 				.split('/')
 				.map((el) => {
 					if (el.startsWith(':')) {
@@ -185,30 +242,30 @@ export class Router {
 				.join('/');
 		}
 
-		if (opts.query) {
-			newURL += '?' + queryString.stringify(opts.query);
-		}
-		return newURL;
+		if (opts.query) path += '?' + queryString.stringify(opts.query);
+
+		return path;
 	};
+
+	//
+	// Public methods (exported)
+	//
 	navigate = (opts: NavigateOptions) => {
 		if (typeof opts !== 'string') {
-			const route = this.internalRoutes.find((el) => el.name === opts.name);
-			if (!route) return error(`Cannot find a route by the unique name of: "${opts.name}"`);
-
-			this.#push(this.#parseURLParams(route.path, opts));
+			this.#push(this.#parseURLParams(opts));
 		} else {
 			this.#push(opts);
 		}
 	};
 	/**
 	 * A helper function to map route named keys to the route path.
-	 * @param opts The options of the route you wish to be parsed.
+	 * @param opts The options of the route.
 	 * @param notFound The URL to be returned if the route does not exist.
 	 */
 	link = (opts: RouteOptions, notFound: string = 'not-found') => {
 		const route = this.internalRoutes.find((el) => el.name === opts.name);
 		if (!route) return notFound;
 
-		return this.#parseURLParams(route.path, opts);
+		return this.#parseURLParams(opts);
 	};
 }

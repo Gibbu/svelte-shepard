@@ -1,1 +1,2 @@
 - Better error messages.
+- isNavigating boolean.

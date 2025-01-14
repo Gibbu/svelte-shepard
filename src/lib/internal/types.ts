@@ -39,7 +39,11 @@ export interface LayoutRoute extends BasePageProps {
 export interface PageRoute extends BasePageProps {
 	/** The URL path for the component to be rendered. */
 	path: string;
-	/** A **unique** ID for the page. */
+	/**
+	 * A **unique** ID for the page.
+	 *
+	 * If no name is provided, a randomly generated ID will be set.
+	 */
 	name?: string;
 	/**
 	 * ## Ignore this.
