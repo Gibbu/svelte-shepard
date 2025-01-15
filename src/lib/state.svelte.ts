@@ -126,9 +126,7 @@ export class Router {
 			query: !route.type ? route.query || {} : {}
 		});
 		if (typeof before === 'object') {
-			if (before.error) {
-				const { status, message } = convertErrorConfig(before.error);
-			}
+			if (before.error) this.error = convertErrorConfig(before.error);
 			if (before.redirect) this.navigate(before.redirect);
 			if (before.props) props = { ...props, ...before.props };
 		}
