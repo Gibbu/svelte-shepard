@@ -1,5 +1,9 @@
-export const error = (...message: string[]) => {
-	throw new Error(`[svelte-shepard] ${message.join('\n')}`);
+import type { ErrorConfig } from './types';
+
+export const log = {
+	error: (...message: string[]): never => {
+		throw new Error(`[svelte-shepard] ${message.join('\n')}`);
+	}
 };
 
 export const createUID = () => {

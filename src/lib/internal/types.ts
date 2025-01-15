@@ -3,14 +3,24 @@ import type { RouterConfig } from '../types';
 
 export type SyncComponent = Component<any, any>;
 export type AsyncComponent = () => Promise<{ default: PageComponent }>;
-
 export type PageComponent = SyncComponent | AsyncComponent;
 export type Route = PageRoute | LayoutRoute;
+
+export type OptionalRecord<T extends Record<string, any>, K extends keyof T> = T[K] extends {}
+	? T[K]
+	: Record<string, any>;
 export interface PageType {
 	props?: Record<string, any>;
 	params?: Record<string, any>;
 	query?: Record<string, any>;
 }
+
+export type ErrorConfig =
+	| number
+	| {
+			status: number;
+			message?: string;
+	  };
 
 export interface BeforeLoadProps {
 	/** Redirect the user to a different route. */
@@ -24,15 +34,10 @@ export interface BeforeLoadProps {
 	 */
 	props?: Record<string, any>;
 	/** Trigger the router to render the error snippet. */
-	error?:
-		| number
-		| {
-				status: number;
-				message?: string;
-		  };
+	error?: ErrorConfig;
 }
 
-export type BeforeLoad = (params: Record<string, any>) => Promise<BeforeLoadProps | void>;
+export type BeforeLoad = (data: Required<PageType>) => Promise<BeforeLoadProps | void>;
 
 export interface BasePageProps {
 	/** The component to be rendered. */
@@ -79,6 +84,12 @@ export type InternalRoute = InternalPage | InternalLayout;
 /** Used internally. */
 export interface InternalRouterConfig extends RouterConfig {
 	routes: InternalRoute[];
+	errors: {
+		400: string;
+		401: string;
+		403: string;
+		404: string;
+	};
 }
 /** Used internally. */
 export interface RouteOptions {

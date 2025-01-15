@@ -1,10 +1,12 @@
 import { sanitizeUrl } from '@braintree/sanitize-url';
-import { createUID, deepClone, error } from './internal/utils';
+import { createUID, deepClone, log } from './internal/utils';
+import { RouterError, convertErrorConfig } from './internal/error';
 import queryString from 'query-string';
 
 import type {
 	AsyncComponent,
 	BeforeLoadProps,
+	ErrorConfig,
 	InternalPage,
 	InternalRoute,
 	InternalRouterConfig,
@@ -25,7 +27,7 @@ export let page = $state<Page>({
 /** General state of the router. */
 export let state = $state<PageState>({
 	navigating: false,
-	page: {
+	route: {
 		name: '',
 		path: ''
 	}
@@ -35,10 +37,40 @@ export class Router {
 	url = $state<string>('/');
 	base: InternalRouterConfig['base'] = '';
 	routes: InternalRouterConfig['routes'] = [];
+	errors: InternalRouterConfig['errors'] = {
+		'400': 'Bad request',
+		'401': 'Unauthorized',
+		'403': 'Forbidden',
+		'404': 'Not found'
+	};
+	error = $state<{ status: number; message?: string } | null>(null);
 
 	internalRoutes: InternalPage[] = [];
 
-	CurrentPage = $derived.by(() => {
+	//
+	// Private methdods (not exported)
+	//
+	init = (config: InternalRouterConfig) => {
+		this.base = config.base;
+		this.routes = config.routes;
+		this.errors = { ...this.errors, ...config.errors };
+
+		this.#parseRoutes();
+
+		this.url = sanitizeUrl(window.location.href);
+
+		window.history.pushState = new Proxy(window.history.pushState, {
+			apply: (target, thisArg, args) => {
+				this.url = sanitizeUrl(args[2]);
+
+				return target.apply(thisArg, args as any);
+			}
+		});
+
+		window.addEventListener('popstate', this.#handlePopstate);
+		window.addEventListener('click', this.#handleClick);
+	};
+	getRoute = () => {
 		const { url, query } = queryString.parseUrl(this.url);
 		const parsedURL = url.startsWith('http') ? new URL(this.url).pathname : url;
 		const urlParts = parsedURL.split('/');
@@ -60,7 +92,7 @@ export class Router {
 			return path.startsWith('/' + urlParts[this.base ? 2 : 1]);
 		});
 		const route = candidateRoutes.find((el) => el.path.split('/').length === urlParts.length);
-		if (!route) return null;
+		if (!route) return undefined;
 
 		// Find param positions.
 		let paramLoc: number[] = [];
@@ -84,71 +116,66 @@ export class Router {
 		if (query) route.query = query;
 
 		return route;
-	});
-
-	//
-	// Private methdods (not exported)
-	//
-	init = (config: InternalRouterConfig) => {
-		this.base = config.base;
-		this.routes = config.routes;
-
-		this.#parseRoutes();
-
-		this.url = sanitizeUrl(window.location.href);
-
-		window.history.pushState = new Proxy(window.history.pushState, {
-			apply: (target, thisArg, args) => {
-				this.url = sanitizeUrl(args[2]);
-
-				return target.apply(thisArg, args as any);
-			}
-		});
-
-		window.addEventListener('popstate', this.#handlePopstate);
-		window.addEventListener('click', this.#handleClick);
 	};
 	runBefore = async (route?: InternalRoute) => {
 		let props: BeforeLoadProps = route?.props || {};
 		if (!route) return props;
-		const run = await route.beforeLoad?.(route.params || {});
-		if (typeof run === 'object') {
-			if (run.redirect) this.navigate(run.redirect);
-			if (run.props) props = { ...props, ...run.props };
+		const before = await route.beforeLoad?.({
+			params: route.params || {},
+			props: route.props || {},
+			query: !route.type ? route.query || {} : {}
+		});
+		if (typeof before === 'object') {
+			if (before.error) {
+				const { status, message } = convertErrorConfig(before.error);
+			}
+			if (before.redirect) this.navigate(before.redirect);
+			if (before.props) props = { ...props, ...before.props };
 		}
 		return props;
 	};
-	render = async (route: InternalPage) => {
+	render = async (route?: InternalPage) => {
+		if (!route) return new RouterError({ status: 404, message: this.errors['404'] });
+		if (this.error) throw new RouterError(this.error);
+
 		let component: PageComponent | null = null;
-		if (route.component.name === 'component') {
-			const tmp = route.component as AsyncComponent;
-			component = (await tmp()).default;
-		} else {
-			component = route.component;
+
+		try {
+			if (route.component.name === 'component') {
+				const tmp = route.component as AsyncComponent;
+				component = (await tmp()).default;
+			} else {
+				component = route.component;
+			}
+
+			let props: Record<string, any> = {
+				...(await this.runBefore(route._layout)),
+				...(await this.runBefore(route))
+			};
+
+			page.props = props;
+			page.params = route.params || {};
+			page.query = route.query || {};
+
+			state.navigating = false;
+			state.route = {
+				name: route.name || '',
+				path: route.path
+			};
+
+			return {
+				layout: route._layout,
+				component,
+				children: route.children
+			};
+		} catch (err) {
+			throw new RouterError(err as RouterError);
 		}
-
-		let props: Record<string, any> = {
-			...(await this.runBefore(route._layout)),
-			...(await this.runBefore(route))
-		};
-
-		page.props = props;
-		page.params = route.params || {};
-		page.query = route.query || {};
-
-		state.navigating = false;
-		state.page = {
-			name: route.name || '',
-			path: route.path
-		};
-
-		return {
-			layout: route._layout,
-			component,
-			children: route.children
-		};
 	};
 
+	//
+	// State functions
+	//
 	#parseRoutes = () => {
 		const paths = new Map();
 		const clonedRoutes = deepClone(this.routes);
@@ -209,7 +236,7 @@ export class Router {
 	};
 	#parseURLParams = (opts: RouteOptions) => {
 		const route = this.internalRoutes.find((el) => el.name === opts.name);
-		if (!route) return error(`Cannot find a route by the unique name of: "${opts.name}"`);
+		if (!route) return log.error(`Cannot find a route by the unique name of: "${opts.name}"`);
 
 		let path = route.path;
 
@@ -219,13 +246,13 @@ export class Router {
 				.filter((el) => el.startsWith(':'))
 				.map((el) => el.replace(':', ''));
 			if (!opts.params && routeParams.length)
-				return error('This route requires params to be passed.', `Params to be passed: ${routeParams.join(',')}`);
+				log.error('This route requires params to be passed.', `Params to be passed: ${routeParams.join(',')}`);
 
 			const optsParams = Object.keys(opts.params!);
 			const missingParams = optsParams.filter((el) => !routeParams.includes(el));
-			if (missingParams.length) return error(`Route requires these params: ${missingParams.join(',')}`);
+			if (missingParams.length) return log.error(`Route requires these params: ${missingParams.join(',')}`);
 			if (optsParams.length !== routeParams.length)
-				return error(
+				return log.error(
 					'Incorrect amount of params passed to route',
 					`Expecting: ${routeParams.join(',')}`,
 					`Passed: ${optsParams.join(',')}`
@@ -250,6 +277,11 @@ export class Router {
 	//
 	// Public methods (exported)
 	//
+
+	/**
+	 * Programmatically load a new route.
+	 * @param opts The string or object to navigate to.
+	 */
 	navigate = (opts: NavigateOptions) => {
 		if (typeof opts !== 'string') {
 			this.#push(this.#parseURLParams(opts));
@@ -259,13 +291,10 @@ export class Router {
 	};
 	/**
 	 * A helper function to map route named keys to the route path.
-	 * @param opts The options of the route.
-	 * @param notFound The URL to be returned if the route does not exist.
+	 * @param name The unique name of the route.
+	 * @param opts Any optional params or queries you wish to pass.
 	 */
-	link = (opts: RouteOptions, notFound: string = 'not-found') => {
-		const route = this.internalRoutes.find((el) => el.name === opts.name);
-		if (!route) return notFound;
-
-		return this.#parseURLParams(opts);
+	link = (name: string, opts?: Omit<RouteOptions, 'name'>) => {
+		return this.#parseURLParams({ name, ...opts });
 	};
 }

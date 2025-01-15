@@ -1,5 +1,5 @@
 import type { Snippet } from 'svelte';
-import type { PageType, Route, SyncComponent } from './internal/types';
+import type { OptionalRecord, PageType, Route, SyncComponent } from './internal/types';
 
 /** The config for the router. */
 export interface RouterConfig {
@@ -12,6 +12,13 @@ export interface RouterConfig {
 	 * Anchor tags will automatically have the base string prepended on click.
 	 */
 	base?: string;
+	/** Change the default error messages that are used inside the router. */
+	errors?: {
+		400?: string;
+		401?: string;
+		403?: string;
+		404?: string;
+	};
 }
 
 /**
@@ -29,7 +36,7 @@ export interface RouterConfig {
  */
 export interface PageState {
 	navigating: boolean;
-	page: {
+	route: {
 		name: string;
 		path: string;
 	};
@@ -49,9 +56,9 @@ export interface PageState {
  * ```
  */
 export interface Page<T extends PageType = Required<PageType>> {
-	props: T['props'] extends {} ? T['props'] : Record<string, any>;
-	params: T['params'] extends {} ? T['params'] : Record<string, any>;
-	query: T['query'] extends {} ? T['query'] : Record<string, any>;
+	props: OptionalRecord<T, 'props'>;
+	params: OptionalRecord<T, 'params'>;
+	query: OptionalRecord<T, 'query'>;
 }
 
 /**

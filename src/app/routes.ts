@@ -14,16 +14,24 @@ const config: RouterConfig = {
 			component: Home
 		},
 		{
+			name: 'Docs',
 			path: '/docs',
 			component: Docs,
 			children: [
 				{
+					name: 'DocsPage',
 					path: '/:id',
-					component: DocPage
+					component: DocPage,
+					async beforeLoad() {
+						console.log('test');
+					}
 				}
 			]
 		}
-	]
+	],
+	errors: {
+		'404': 'I cannot find that page... :('
+	}
 };
 
 export { config };

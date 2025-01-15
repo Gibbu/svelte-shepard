@@ -1,12 +1,22 @@
 <script lang="ts" module>
 	const router = new Router();
 
+	/**
+	 * Programmatically load a new route.
+	 * @param opts The string or object to navigate to.
+	 */
 	export const navigate = router.navigate;
+	/**
+	 * A helper function to map route named keys to the route path.
+	 * @param name The unique name of the route.
+	 * @param opts Any optional params or queries you wish to pass.
+	 */
 	export const link = router.link;
 </script>
 
 <script lang="ts">
 	import { Router, page } from './state.svelte';
+	import { RouterError } from './internal/error';
 
 	import type { Snippet } from 'svelte';
 	import type { RouterConfig } from './types';
@@ -15,7 +25,7 @@
 	interface RouterProps {
 		config: RouterConfig;
 		/** This will be rendered when the router has encountered an error. */
-		error?: Snippet<[any?]>;
+		error?: Snippet<[RouterError]>;
 		/** Will be rendered when async components are being loaded. */
 		loading?: Snippet;
 	}
@@ -26,11 +36,11 @@
 </script>
 
 {#snippet build()}
-	{#if router.CurrentPage}
-		{#key router.url}
-			{#await router.render(router.CurrentPage)}
-				{@render loading?.()}
-			{:then data}
+	{#key router.url}
+		{#await router.render(router.getRoute())}
+			{@render loading?.()}
+		{:then data}
+			{#if !(data instanceof RouterError)}
 				{#if data.layout}
 					<data.layout.component {...page}>
 						<data.component {...page} />
@@ -38,13 +48,13 @@
 				{:else}
 					<data.component {...page} />
 				{/if}
-			{:catch err}
-				{@render error?.(err)}
-			{/await}
-		{/key}
-	{:else}
-		{@render error?.(404)}
-	{/if}
+			{:else}
+				{@render error?.(router.error)}
+			{/if}
+		{:catch err}
+			{@render error?.(router.error)}
+		{/await}
+	{/key}
 {/snippet}
 
 {#if config.layout}

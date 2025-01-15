@@ -1,7 +1,6 @@
 Lib:
 
-- Better error messages.
-- Handle new returned `error` prop in `beforeLoad` route function.
+- Better error messages - Somewhat better...?
 
 Docs:
 

@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { state, type Layout } from '../../lib';
+	import { link, type Layout } from '../../lib';
 
 	let { children }: Layout = $props();
 </script>
 
 <nav>
-	<a href="/">Home</a>
-	<a href="/docs">Docs</a>
+	<a href={link('Home')}>Home</a>
+	<a href={link('Docs')}>Docs</a>
 </nav>
 
 <div>{@render children()}</div>

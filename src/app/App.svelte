@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Router } from '../lib';
+	import { Router, link } from '../lib';
 
 	import { config } from './routes';
 </script>
@@ -9,9 +9,9 @@
 		<p>Loading...</p>
 	{/snippet}
 	{#snippet error(err)}
-		SOME SORT OF ERROR?
 		<pre>
-			{err}
+			{err.status}
+			{err.message}
 		</pre>
 	{/snippet}
 </Router>
