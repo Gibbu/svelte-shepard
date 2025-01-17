@@ -1,8 +1,7 @@
 import { sanitizeUrl } from '@braintree/sanitize-url';
 import { createUID, deepClone, log } from './internal/utils';
-import { RouterError, convertErrorConfig } from './internal/error';
-import queryString from 'query-string';
 
+import type { Page, RouterConfig, RouterData } from './types';
 import type {
 	AsyncComponent,
 	BeforeLoadProps,
@@ -15,109 +14,80 @@ import type {
 	PageComponent,
 	RouteOptions
 } from './internal/types';
-import type { Page, PageState } from './types';
+import queryString from 'query-string';
+import { convertErrorConfig, RouterError } from './internal/error';
 
-/** The data of the page. */
 export let page = $state<Page>({
 	params: {},
 	props: {},
 	query: {}
 });
 
-/** General state of the router. */
-export let state = $state<PageState>({
+export let state = $state<RouterData>({
 	navigating: false,
-	route: {
+	page: {
 		name: '',
 		path: ''
 	}
 });
 
 export class Router {
-	url = $state<string>('/');
-	base: InternalRouterConfig['base'] = '';
-	routes: InternalRouterConfig['routes'] = [];
-	errors: InternalRouterConfig['errors'] = {
-		'400': 'Bad request',
-		'401': 'Unauthorized',
-		'403': 'Forbidden',
-		'404': 'Not found'
+	URL = $state<string>('/');
+	error = $state<ErrorConfig | null>(null);
+
+	#base: InternalRouterConfig['base'];
+	#errors: InternalRouterConfig['errors'] = {
+		'404': 'Bad Request'
 	};
-	error = $state<{ status: number; message?: string } | null>(null);
+	#routes: InternalPage[] = [];
 
-	internalRoutes: InternalPage[] = [];
+	#applyHandlers = () => {
+		const handlePopstate = () => {
+			this.URL = sanitizeUrl(window.location.pathname);
+		};
+		const handleClick = (e: MouseEvent) => {
+			const target = e.target as HTMLElement;
+			if (target.nodeName === 'A' || target.nodeName === 'A') {
+				const disabled = target.getAttribute('data-shepard-disabled');
+				if (disabled === '') return;
 
-	//
-	// Private methdods (not exported)
-	//
-	init = (config: InternalRouterConfig) => {
-		this.base = config.base;
-		this.routes = config.routes;
-		this.errors = { ...this.errors, ...config.errors };
-
-		this.#parseRoutes();
-
-		this.url = sanitizeUrl(window.location.href);
-
-		window.history.pushState = new Proxy(window.history.pushState, {
-			apply: (target, thisArg, args) => {
-				this.url = sanitizeUrl(args[2]);
-
-				return target.apply(thisArg, args as any);
+				const anchor = target as HTMLAnchorElement;
+				const href = anchor.getAttribute('href');
+				if (href?.startsWith('/')) {
+					e.preventDefault();
+					if (href !== this.URL) {
+						if (this.#base) this.#push(`/${this.#base}${href}`);
+						else this.#push(href);
+					}
+				}
 			}
+		};
+
+		$effect(() => {
+			window.history.pushState = new Proxy(window.history.pushState, {
+				apply: (target, thisArg, args) => {
+					this.URL = sanitizeUrl(args[2]);
+
+					return target.apply(thisArg, args as any);
+				}
+			});
+
+			window.addEventListener('click', handleClick);
+			window.addEventListener('popstate', handlePopstate);
+
+			return () => {
+				window.removeEventListener('click', handleClick);
+				window.removeEventListener('popstate', handlePopstate);
+			};
 		});
-
-		window.addEventListener('popstate', this.#handlePopstate);
-		window.addEventListener('click', this.#handleClick);
 	};
-	getRoute = () => {
-		const { url, query } = queryString.parseUrl(this.url);
-		const parsedURL = url.startsWith('http') ? new URL(this.url).pathname : url;
-		const urlParts = parsedURL.split('/');
 
-		// 1-1 match, no params found.
-		const plain = this.internalRoutes.find((el) => el.path === parsedURL);
-		if (plain) {
-			if (query) plain.query = query;
-			return plain;
-		}
-
-		// No 1-1 match, params must be present.
-		const candidateRoutes = this.internalRoutes.filter((el) => {
-			let path = el.path;
-			if (this.base) {
-				path = path.replace(this.base + '/', '');
-			}
-
-			return path.startsWith('/' + urlParts[this.base ? 2 : 1]);
-		});
-		const route = candidateRoutes.find((el) => el.path.split('/').length === urlParts.length);
-		if (!route) return undefined;
-
-		// Find param positions.
-		let paramLoc: number[] = [];
-		const pathSplit = route.path.split('/');
-
-		for (let i = 0; i < pathSplit.length; i++) {
-			const part = pathSplit[i];
-			if (part.startsWith(':')) paramLoc.push(route.path.split('/').indexOf(part));
-		}
-
-		// Replace params with values from URL
-		for (let i = 0; i < paramLoc.length; i++) {
-			const param = paramLoc[i];
-			const key = route.path.split('/')[param].replace(':', '');
-			const value = urlParts[param];
-
-			if (!route.params) route.params = {};
-			route.params[key] = value;
-		}
-
-		if (query) route.query = query;
-
-		return route;
+	#push = (url: string) => {
+		state.navigating = false;
+		history.pushState(null, '', sanitizeUrl(url));
 	};
-	runBefore = async (route?: InternalRoute) => {
+
+	#before = async (route?: InternalRoute) => {
 		let props: BeforeLoadProps = route?.props || {};
 		if (!route) return props;
 		const before = await route.beforeLoad?.({
@@ -132,108 +102,9 @@ export class Router {
 		}
 		return props;
 	};
-	render = async (route?: InternalPage) => {
-		if (!route) return new RouterError({ status: 404, message: this.errors['404'] });
-		if (this.error) throw new RouterError(this.error);
 
-		let component: PageComponent | null = null;
-
-		try {
-			if (route.component.name === 'component') {
-				const tmp = route.component as AsyncComponent;
-				component = (await tmp()).default;
-			} else {
-				component = route.component;
-			}
-
-			let props: Record<string, any> = {
-				...(await this.runBefore(route._layout)),
-				...(await this.runBefore(route))
-			};
-
-			page.props = props;
-			page.params = route.params || {};
-			page.query = route.query || {};
-
-			state.navigating = false;
-			state.route = {
-				name: route.name || '',
-				path: route.path
-			};
-
-			return {
-				layout: route._layout,
-				component,
-				children: route.children
-			};
-		} catch (err) {
-			throw new RouterError(err as RouterError);
-		}
-	};
-
-	//
-	// State functions
-	//
-	#parseRoutes = () => {
-		const paths = new Map();
-		const clonedRoutes = deepClone(this.routes);
-
-		const mapRoutes = (routes: InternalRoute[], component?: LayoutRoute, path?: string) => {
-			for (let i = 0; i < routes.length; i++) {
-				const el = routes[i];
-				let lastLayout: LayoutRoute | undefined = component;
-
-				if (!el.type) {
-					if (!el.name) el.name = createUID();
-					if (lastLayout) el._layout = lastLayout;
-					if (!el.path.startsWith('/')) el.path = '/' + el.path;
-
-					if (path) el.path = path + el.path;
-				}
-
-				if (el.children) {
-					if (el.type === 'layout') lastLayout = el;
-
-					if (!el.type) mapRoutes(el.children, lastLayout, el.path);
-					mapRoutes(el.children, lastLayout);
-				}
-				if (!el.type && !paths.has(el.name)) paths.set(el.name, el);
-			}
-		};
-
-		mapRoutes(clonedRoutes);
-
-		this.internalRoutes = Array.from(paths).map(([_, v]: InternalPage[]) => {
-			if (this.base) v.path = `/${this.base}${v.path}`;
-			return v;
-		});
-	};
-	#push = (url: string) => {
-		state.navigating = true;
-		history.pushState(null, '', sanitizeUrl(url));
-	};
-	#handlePopstate = () => {
-		this.url = sanitizeUrl(window.location.pathname);
-	};
-	#handleClick = (e: MouseEvent) => {
-		const target = e.target as HTMLElement;
-		if (target.nodeName === 'A' || target.nodeName === 'A') {
-			const disabled = target.getAttribute('data-shepard-disabled');
-			if (disabled === '') return;
-
-			const anchor = target as HTMLAnchorElement;
-			const href = anchor.getAttribute('href');
-			if (href?.startsWith('/')) {
-				e.preventDefault();
-				if (href !== this.url) {
-					if (this.base) this.#push(`/${this.base}${href}`);
-					else this.#push(href);
-				}
-			}
-		}
-	};
 	#parseURLParams = (opts: RouteOptions) => {
-		const route = this.internalRoutes.find((el) => el.name === opts.name);
+		const route = this.#routes.find((el) => el.name === opts.name);
 		if (!route) return log.error(`Cannot find a route by the unique name of: "${opts.name}"`);
 
 		let path = route.path;
@@ -272,8 +143,142 @@ export class Router {
 		return path;
 	};
 
+	#getRoute = () => {
+		const { url, query } = queryString.parseUrl(this.URL);
+		const parsedURL = url.startsWith('http') ? new URL(this.URL).pathname : url;
+		const urlParts = parsedURL.split('/');
+
+		// 1-1 match, no params found.
+		const plain = this.#routes.find((el) => el.path === parsedURL);
+		if (plain) {
+			if (query) plain.query = query;
+			return plain;
+		}
+
+		// No 1-1 match, params must be present.
+		const candidateRoutes = this.#routes.filter((el) => {
+			let path = el.path;
+			if (this.#base) {
+				path = path.replace(this.#base + '/', '');
+			}
+
+			return path.startsWith('/' + urlParts[this.#base ? 2 : 1]);
+		});
+
+		const route = candidateRoutes.find((el) => el.path.split('/').length === urlParts.length);
+		if (!route) return undefined;
+
+		// Find param positions.
+		let paramLoc: number[] = [];
+		const pathSplit = route.path.split('/');
+
+		for (let i = 0; i < pathSplit.length; i++) {
+			const part = pathSplit[i];
+			if (part.startsWith(':')) paramLoc.push(route.path.split('/').indexOf(part));
+		}
+
+		// Replace params with values from URL
+		for (let i = 0; i < paramLoc.length; i++) {
+			const param = paramLoc[i];
+			const key = route.path.split('/')[param].replace(':', '');
+			const value = urlParts[param];
+
+			if (!route.params) route.params = {};
+			route.params[key] = value;
+		}
+
+		if (query) route.query = query;
+
+		return route;
+	};
+
+	initialize = (config: RouterConfig) => {
+		this.#base = config.base;
+		this.#errors = { ...this.#errors, ...config.errors };
+
+		this.URL = sanitizeUrl(window.location.href);
+
+		this.#applyHandlers();
+
+		const paths = new Map();
+		const clonedRoutes = deepClone(config.routes);
+
+		const mapRoutes = (routes: InternalRoute[], component?: LayoutRoute, path?: string) => {
+			for (let i = 0; i < routes.length; i++) {
+				const el = routes[i];
+				let lastLayout: LayoutRoute | undefined = component;
+
+				if (!el.type) {
+					if (!el.name) el.name = createUID();
+					if (lastLayout) el._layout = lastLayout;
+					if (!el.path.startsWith('/')) el.path = '/' + el.path;
+
+					if (path) el.path = path + el.path;
+				}
+
+				if (el.children) {
+					if (el.type === 'layout') lastLayout = el;
+
+					if (!el.type) mapRoutes(el.children, lastLayout, el.path);
+					mapRoutes(el.children, lastLayout);
+				}
+				if (!el.type && !paths.has(el.name)) paths.set(el.name, el);
+			}
+		};
+
+		mapRoutes(clonedRoutes);
+
+		this.#routes = Array.from(paths).map(([_, v]: InternalPage[]) => {
+			if (this.#base) v.path = `/${this.#base}${v.path}`;
+			return v;
+		});
+	};
+
+	render = async () => {
+		const route = this.#getRoute();
+
+		if (!route) return new RouterError({ status: 404, message: this.#errors['404'] });
+		if (this.error) throw new RouterError(this.error);
+
+		let component: PageComponent | null = null;
+
+		try {
+			if (route.component.name === 'component') {
+				const tmp = route.component as AsyncComponent;
+				component = (await tmp()).default;
+			} else {
+				component = route.component;
+			}
+
+			let props: Record<string, any> = {
+				...(await this.#before(route._layout)),
+				...(await this.#before(route))
+			};
+
+			page.props = props;
+			page.params = route.params || {};
+			page.query = route.query || {};
+
+			state.navigating = false;
+			state.page = {
+				name: route.name || '',
+				path: route.path
+			};
+
+			return {
+				layout: route._layout,
+				component,
+				children: route.children
+			};
+		} catch (err) {
+			throw new RouterError(err as RouterError);
+		}
+	};
+
+	//
 	//
 	// Public methods (exported)
+	//
 	//
 
 	/**

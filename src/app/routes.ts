@@ -21,10 +21,7 @@ const config: RouterConfig = {
 				{
 					name: 'DocsPage',
 					path: '/:id',
-					component: DocPage,
-					async beforeLoad() {
-						console.log('test');
-					}
+					component: DocPage
 				}
 			]
 		}

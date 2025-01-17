@@ -1,4 +1,6 @@
 <script lang="ts" module>
+	import { Router, page } from './state.svelte';
+
 	const router = new Router();
 
 	/**
@@ -6,6 +8,7 @@
 	 * @param opts The string or object to navigate to.
 	 */
 	export const navigate = router.navigate;
+
 	/**
 	 * A helper function to map route named keys to the route path.
 	 * @param name The unique name of the route.
@@ -15,52 +18,41 @@
 </script>
 
 <script lang="ts">
-	import { Router, page } from './state.svelte';
+	import Layout from './internal/Layout.svelte';
 	import { RouterError } from './internal/error';
 
 	import type { Snippet } from 'svelte';
 	import type { RouterConfig } from './types';
-	import type { InternalRouterConfig } from './internal/types';
+	import type { ErrorConfig } from './internal/types';
 
 	interface RouterProps {
 		config: RouterConfig;
-		/** This will be rendered when the router has encountered an error. */
-		error?: Snippet<[RouterError]>;
-		/** Will be rendered when async components are being loaded. */
+		error?: Snippet<[ErrorConfig | null]>;
 		loading?: Snippet;
 	}
 
 	let { config, error, loading }: RouterProps = $props();
 
-	router.init(config as InternalRouterConfig);
+	router.initialize(config);
+
+	const GlobalLayout = config.layout || Layout;
 </script>
 
-{#snippet build()}
-	{#key router.url}
-		{#await router.render(router.getRoute())}
+<GlobalLayout>
+	{#key router.URL}
+		{#await router.render()}
 			{@render loading?.()}
 		{:then data}
 			{#if !(data instanceof RouterError)}
-				{#if data.layout}
-					<data.layout.component {...page}>
-						<data.component {...page} />
-					</data.layout.component>
-				{:else}
+				{@const PageLayout = data.layout?.component || Layout}
+				<PageLayout {...page}>
 					<data.component {...page} />
-				{/if}
+				</PageLayout>
 			{:else}
 				{@render error?.(router.error)}
 			{/if}
 		{:catch err}
-			{@render error?.(router.error)}
+			{@render error?.(err)}
 		{/await}
 	{/key}
-{/snippet}
-
-{#if config.layout}
-	<config.layout {...page}>
-		{@render build()}
-	</config.layout>
-{:else}
-	{@render build()}
-{/if}
+</GlobalLayout>

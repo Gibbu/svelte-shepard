@@ -19,7 +19,7 @@ export type ErrorConfig =
 	| number
 	| {
 			status: number;
-			message?: string;
+			message: string;
 	  };
 
 export interface BeforeLoadProps {
@@ -85,9 +85,6 @@ export type InternalRoute = InternalPage | InternalLayout;
 export interface InternalRouterConfig extends RouterConfig {
 	routes: InternalRoute[];
 	errors: {
-		400: string;
-		401: string;
-		403: string;
 		404: string;
 	};
 }

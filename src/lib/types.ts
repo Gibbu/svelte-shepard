@@ -26,17 +26,15 @@ export interface RouterConfig {
  *
  *  ```svelte
  * <script>
- * import type { PageState } from 'svelte-shepard';
- *
- * let { props, params, query }: PageState = $props();
+ * import { state } from 'svelte-shepard';
  * </script>
  *
- * {params.id}
+ * {state.page.name}
  * ```
  */
-export interface PageState {
+export interface RouterData {
 	navigating: boolean;
-	route: {
+	page: {
 		name: string;
 		path: string;
 	};

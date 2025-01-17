@@ -1,5 +1,3 @@
-import type { ErrorConfig } from './types';
-
 export const log = {
 	error: (...message: string[]): never => {
 		throw new Error(`[svelte-shepard] ${message.join('\n')}`);
