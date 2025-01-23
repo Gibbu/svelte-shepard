@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { link, type Layout } from '../../lib';
+	import { link, type Layout } from '../../shepard';
 
 	let { children }: Layout = $props();
 </script>
@@ -9,4 +9,4 @@
 	<a href={link('Docs')}>Docs</a>
 </nav>
 
-<div>{@render children()}</div>
+{@render children()}

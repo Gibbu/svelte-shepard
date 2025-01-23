@@ -19,15 +19,14 @@
 
 <script lang="ts">
 	import Layout from './internal/Layout.svelte';
-	import { RouterError } from './internal/error';
 
 	import type { Snippet } from 'svelte';
 	import type { RouterConfig } from './types';
-	import type { ErrorConfig } from './internal/types';
+	import type { ErrorObject } from './internal/types';
 
 	interface RouterProps {
 		config: RouterConfig;
-		error?: Snippet<[ErrorConfig | null]>;
+		error?: Snippet<[ErrorObject | null]>;
 		loading?: Snippet;
 	}
 
@@ -39,20 +38,18 @@
 </script>
 
 <GlobalLayout>
-	{#key router.URL}
-		{#await router.render()}
-			{@render loading?.()}
-		{:then data}
-			{#if !(data instanceof RouterError)}
-				{@const PageLayout = data.layout?.component || Layout}
-				<PageLayout {...page}>
-					<data.component {...page} />
-				</PageLayout>
-			{:else}
-				{@render error?.(router.error)}
-			{/if}
-		{:catch err}
-			{@render error?.(err)}
-		{/await}
-	{/key}
+	{#await router.render()}
+		{@render loading?.()}
+	{:then data}
+		{#if router.error.status === 0}
+			{@const PageLayout = data.layout?.component || Layout}
+			<PageLayout {...page}>
+				<data.component {...page} />
+			</PageLayout>
+		{:else}
+			{@render error?.(router.error)}
+		{/if}
+	{:catch err}
+		{@render error?.(err)}
+	{/await}
 </GlobalLayout>

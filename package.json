@@ -1,26 +1,32 @@
 {
 	"name": "svelte-shepard",
-	"private": true,
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
-		"build": "vite build",
-		"preview": "vite preview",
+		"package": "svelte-package -i src/shepard && rm -rf .svelte-kit",
 		"check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json"
 	},
 	"devDependencies": {
+		"@sveltejs/package": "^2.3.9",
 		"@sveltejs/vite-plugin-svelte": "^5.0.3",
 		"@tsconfig/svelte": "^5.0.4",
-		"lucide-svelte": "^0.471.0",
-		"prettier": "^3.4.2",
-		"prettier-plugin-svelte": "^3.3.2",
+		"lucide-svelte": "^0.473.0",
+		"prettier-plugin-svelte": "^3.3.3",
 		"rehype-external-links": "^3.0.0",
 		"rehype-slug": "^6.0.0",
-		"svelte": "^5.16.6",
+		"rehype-stringify": "^10.0.1",
+		"remark-extract-frontmatter": "^3.2.0",
+		"remark-frontmatter": "^5.0.0",
+		"remark-gfm": "^4.0.0",
+		"remark-parse": "^11.0.0",
+		"remark-rehype": "^11.1.1",
+		"svelte": "^5.15.0",
 		"svelte-check": "^4.1.1",
-		"typescript": "~5.7.2",
-		"vite": "^6.0.7"
+		"typescript": "~5.6.2",
+		"unified": "^11.0.5",
+		"vite": "^6.0.5",
+		"yaml": "^2.7.0"
 	},
 	"peerDependencies": {
 		"svelte": "^5.16.6"
@@ -28,5 +34,14 @@
 	"dependencies": {
 		"@braintree/sanitize-url": "^7.1.1",
 		"query-string": "^9.1.1"
-	}
+	},
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"svelte": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist"
+	]
 }

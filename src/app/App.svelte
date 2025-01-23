@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Router, link } from '../lib';
+	import { Router } from '../shepard';
 
 	import { config } from './routes';
 </script>
@@ -10,8 +10,9 @@
 	{/snippet}
 	{#snippet error(err)}
 		<pre>
-			{err.status}
-			{err.message}
+			{JSON.stringify(err)}
+			{err?.status}
+			{err?.message}
 		</pre>
 	{/snippet}
 </Router>

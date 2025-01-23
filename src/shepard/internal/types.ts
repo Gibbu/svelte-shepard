@@ -1,10 +1,9 @@
 import type { Component } from 'svelte';
-import type { RouterConfig } from '../types';
+import type { Route, RouterConfig } from '../types.js';
 
 export type SyncComponent = Component<any, any>;
 export type AsyncComponent = () => Promise<{ default: PageComponent }>;
 export type PageComponent = SyncComponent | AsyncComponent;
-export type Route = PageRoute | LayoutRoute;
 
 export type OptionalRecord<T extends Record<string, any>, K extends keyof T> = T[K] extends {}
 	? T[K]
@@ -15,12 +14,12 @@ export interface PageType {
 	query?: Record<string, any>;
 }
 
-export type ErrorConfig =
-	| number
-	| {
-			status: number;
-			message: string;
-	  };
+export interface ErrorObject {
+	status: number;
+	message: string;
+}
+
+export type ErrorConfig = number | ErrorObject;
 
 export interface BeforeLoadProps {
 	/** Redirect the user to a different route. */

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { type Page } from '../../../lib';
+	import { type Page } from '../../../shepard';
 
 	let { params, props }: Page<{ params: { id: string } }> = $props();
 </script>
 
-{params.id}
+{@html props.result}

@@ -1,5 +1,8 @@
 import type { Snippet } from 'svelte';
-import type { OptionalRecord, PageType, Route, SyncComponent } from './internal/types';
+import type { LayoutRoute, OptionalRecord, PageRoute, PageType, SyncComponent } from './internal/types';
+
+/** The structure of the route. */
+export type Route = PageRoute | LayoutRoute;
 
 /** The config for the router. */
 export interface RouterConfig {
@@ -34,10 +37,11 @@ export interface RouterConfig {
  */
 export interface RouterData {
 	navigating: boolean;
-	page: {
+	route: {
 		name: string;
 		path: string;
 	};
+	url: URL;
 }
 
 /**

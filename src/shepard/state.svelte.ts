@@ -1,11 +1,11 @@
 import { sanitizeUrl } from '@braintree/sanitize-url';
-import { createUID, deepClone, log } from './internal/utils';
+import { createUID, deepClone, log } from './internal/utils.js';
 
-import type { Page, RouterConfig, RouterData } from './types';
+import type { Page, RouterConfig, RouterData } from './types.ts';
 import type {
 	AsyncComponent,
 	BeforeLoadProps,
-	ErrorConfig,
+	ErrorObject,
 	InternalPage,
 	InternalRoute,
 	InternalRouterConfig,
@@ -13,27 +13,30 @@ import type {
 	NavigateOptions,
 	PageComponent,
 	RouteOptions
-} from './internal/types';
+} from './internal/types.js';
 import queryString from 'query-string';
-import { convertErrorConfig, RouterError } from './internal/error';
+import { convertErrorConfig, RouterError } from './internal/error.js';
 
+/** The data related to the page. */
 export let page = $state<Page>({
 	params: {},
 	props: {},
 	query: {}
 });
 
+/** Overall state of the router. */
 export let state = $state<RouterData>({
 	navigating: false,
-	page: {
+	route: {
 		name: '',
 		path: ''
-	}
+	},
+	url: new URL(window.location.href)
 });
 
 export class Router {
 	URL = $state<string>('/');
-	error = $state<ErrorConfig | null>(null);
+	error: ErrorObject = { status: 0, message: '' };
 
 	#base: InternalRouterConfig['base'];
 	#errors: InternalRouterConfig['errors'] = {
@@ -139,11 +142,14 @@ export class Router {
 		}
 
 		if (opts.query) path += '?' + queryString.stringify(opts.query);
+		if (!path.startsWith('/')) path = '/' + path;
 
 		return path;
 	};
 
 	#getRoute = () => {
+		this.error = { status: 0, message: '' };
+
 		const { url, query } = queryString.parseUrl(this.URL);
 		const parsedURL = url.startsWith('http') ? new URL(this.URL).pathname : url;
 		const urlParts = parsedURL.split('/');
@@ -237,8 +243,8 @@ export class Router {
 	render = async () => {
 		const route = this.#getRoute();
 
-		if (!route) return new RouterError({ status: 404, message: this.#errors['404'] });
-		if (this.error) throw new RouterError(this.error);
+		if (!route) throw new RouterError({ status: 404, message: this.#errors['404'] });
+		if (this.error.status !== 0) throw new RouterError(this.error);
 
 		let component: PageComponent | null = null;
 
@@ -260,7 +266,8 @@ export class Router {
 			page.query = route.query || {};
 
 			state.navigating = false;
-			state.page = {
+			state.url = new URL(window.location.href);
+			state.route = {
 				name: route.name || '',
 				path: route.path
 			};

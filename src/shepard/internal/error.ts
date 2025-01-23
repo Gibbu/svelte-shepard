@@ -1,4 +1,4 @@
-import type { ErrorConfig } from './types';
+import type { ErrorConfig } from './types.js';
 
 export const convertErrorConfig = (opts: ErrorConfig) => {
 	const status = typeof opts === 'object' ? opts.status : opts;
