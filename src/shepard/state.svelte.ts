@@ -293,6 +293,7 @@ export class Router {
 	 * @param opts The string or object to navigate to.
 	 */
 	navigate = (opts: NavigateOptions) => {
+		console.log(opts);
 		if (typeof opts !== 'string') {
 			this.#push(this.#parseURLParams(opts));
 		} else {
@@ -304,7 +305,34 @@ export class Router {
 	 * @param name The unique name of the route.
 	 * @param opts Any optional params or queries you wish to pass.
 	 */
-	link = (name: string, opts?: Omit<RouteOptions, 'name'>) => {
+	mapRoute = (name: string, opts?: Omit<RouteOptions, 'name'>) => {
 		return this.#parseURLParams({ name, ...opts });
+	};
+
+	/**
+	 * The svelte action to navigate to other routes.
+	 *
+	 * If the action is used on an `a` tag it will use the\
+	 * `href` attribute first, then the `opts` argument.
+	 */
+	link = (node: HTMLElement, opts?: NavigateOptions) => {
+		let config = opts;
+
+		const handleClick = (e: MouseEvent) => {
+			if ((!opts && node.nodeName === 'A') || node.nodeName === 'A') {
+				e.preventDefault();
+				this.navigate((node as HTMLAnchorElement).href);
+			} else {
+				this.navigate(opts!);
+			}
+		};
+
+		node.addEventListener('click', handleClick);
+
+		return {
+			update(opts: NavigateOptions) {
+				config = opts;
+			}
+		};
 	};
 }

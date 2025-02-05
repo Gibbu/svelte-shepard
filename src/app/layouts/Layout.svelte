@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { link, type Layout } from '../../shepard';
+	import { mapRoute, link, type Layout } from '../../shepard';
 
 	let { children }: Layout = $props();
 </script>
 
 <nav>
-	<a href={link('Home')}>Home</a>
-	<a href={link('Docs')}>Docs</a>
+	<a use:link href={mapRoute('Home')}>Home</a>
+	<a use:link href={mapRoute('Docs')}>Docs</a>
 </nav>
 
 {@render children()}

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { link } from '../../../shepard';
+	import { mapRoute } from '../../../shepard';
 </script>
 
-<a href={link('DocsPage', { params: { id: 'test' } })}>test</a>
-<a href={link('DocsPage', { params: { id: 'wowzers' } })}>wowzers</a>
+<a href={mapRoute('DocsPage', { params: { id: 'test' } })}>test</a>
+<a href={mapRoute('DocsPage', { params: { id: 'wowzers' } })}>wowzers</a>

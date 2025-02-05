@@ -14,6 +14,14 @@
 	 * @param name The unique name of the route.
 	 * @param opts Any optional params or queries you wish to pass.
 	 */
+	export const mapRoute = router.mapRoute;
+
+	/**
+	 * The svelte action to navigate to other routes.
+	 *
+	 * If the action is used on an `a` tag it will use the\
+	 * `href` attribute first, then the `opts` argument.
+	 */
 	export const link = router.link;
 </script>
 

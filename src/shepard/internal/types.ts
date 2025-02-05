@@ -22,7 +22,12 @@ export interface ErrorObject {
 export type ErrorConfig = number | ErrorObject;
 
 export interface BeforeLoadProps {
-	/** Redirect the user to a different route. */
+	/**
+	 * Redirect the user to a different route.
+	 *
+	 * Passing a string will be used as the url.\
+	 * Passing an object with resolve to the route unique name.
+	 */
 	redirect?: NavigateOptions;
 	/**
 	 * Props to be passed down to the component before mounting. \
@@ -36,7 +41,7 @@ export interface BeforeLoadProps {
 	error?: ErrorConfig;
 }
 
-export type BeforeLoad = (data: Required<PageType>) => Promise<BeforeLoadProps | void>;
+export type BeforeLoad = (data: Required<PageType>) => Promise<BeforeLoadProps | void> | BeforeLoadProps | void;
 
 export interface BasePageProps {
 	/** The component to be rendered. */
